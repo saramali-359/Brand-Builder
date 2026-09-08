@@ -3,6 +3,7 @@ from google import genai
 from google.genai import types
 from PIL import Image
 from io import BytesIO
+import time
 
 # 1. Authenticate using the Streamlit Secret
 client = genai.Client(api_key=st.secrets["API_KEY"])
@@ -24,7 +25,7 @@ st.sidebar.warning("🚫 Policy: No people will be included in any images.")
 
 if st.sidebar.button("Generate Brand Assets"):
     if not product_desc:
-        st.error("Please describe your product first initials!")
+        st.error("Please describe your product first!")
     else:
         # Define the prompts
         mediums = {
@@ -33,14 +34,18 @@ if st.sidebar.button("Generate Brand Assets"):
             "Social Media Post": f"A minimalist, trendy Instagram-style product shot of {product_desc}. Placed on a clean marble surface with soft natural sunlight and shadows. 4k, professional photography. No people."
         }
 
-        for medium, prompt in mediums.items():
+        for i, (medium, prompt) in enumerate(mediums.items()):
             with st.container():
                 st.subheader(medium)
                 st.info(f"**Prompt sent to Gemini:** {prompt}")
                 
-                with st.spinner(f"Generating {medium} image..."):
+                with st.spinner(f"Generating {medium} image... (Pacing to protect free-tier quota)"):
                     try:
-                        # Use Gemini Flash to generate the image content directly
+                        # If this is the 2nd or 3rd image, pause briefly to respect rate limits
+                        if i > 0:
+                            time.sleep(6)
+
+                        # Use the correct free-tier image generation model ID
                         response = client.models.generate_content(
                             model='gemini-2.5-flash-image',
                             contents=prompt,
@@ -60,7 +65,7 @@ if st.sidebar.button("Generate Brand Assets"):
                                 break
                         
                         if not image_found:
-                            st.warning("The model returned text instead of an image. Try tweaking the prompt slightly.")
+                            st.warning("The model returned text instead of an image.")
                             if response.text:
                                 st.write(response.text)
                         
