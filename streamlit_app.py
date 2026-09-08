@@ -30,7 +30,7 @@ if st.button("Generate Strategy & Asset"):
     else:
         with st.spinner(f"Crafting your {selected_medium} campaign..."):
             try:
-                # Use the free-tier text model (gemini-2.0-flash) to write high-end ad copy & design prompts
+                # Updated to use the active gemini-3.6-flash model
                 prompt = f"""
                 You are an expert creative director. For the product '{product_name}' described as: '{product_desc}':
                 Create a high-converting marketing strategy for a {selected_medium}.
@@ -42,7 +42,7 @@ if st.button("Generate Strategy & Asset"):
                 """
                 
                 response = client.models.generate_content(
-                    model='gemini-2.0-flash',
+                    model='gemini-3.6-flash',
                     contents=prompt
                 )
                 
