@@ -10,7 +10,7 @@ client = genai.Client(api_key=st.secrets["API_KEY"])
 st.set_page_config(page_title="Brand Builder", page_icon="🎨")
 
 st.title("🎨 Brand Builder")
-st.markdown("Visualize your product across mediums using Google's Imagen model.")
+st.markdown("Visualize your product across mediums using Google Gemini.")
 
 # --- Product Definition ---
 st.sidebar.header("Product Identity")
@@ -24,7 +24,7 @@ st.sidebar.warning("🚫 Policy: No people will be included in any images.")
 
 if st.sidebar.button("Generate Brand Assets"):
     if not product_desc:
-        st.error("Please describe your product first!")
+        st.error("Please describe your product first initials!")
     else:
         # Define the prompts
         mediums = {
@@ -36,26 +36,33 @@ if st.sidebar.button("Generate Brand Assets"):
         for medium, prompt in mediums.items():
             with st.container():
                 st.subheader(medium)
-                st.info(f"**Prompt sent to Google Imagen:** {prompt}")
+                st.info(f"**Prompt sent to Gemini:** {prompt}")
                 
                 with st.spinner(f"Generating {medium} image..."):
                     try:
-                        # Request the image directly from Google's Imagen model
-                        result = client.models.generate_images(
-                            model='imagen-3.0-generate-002',
-                            prompt=prompt,
-                            config=types.GenerateImagesConfig(
-                                number_of_images=1,
-                                aspect_ratio="16:9" if medium == "Outdoor Billboard" else "1:1",
-                                person_generation="dont_allow" # Enforces your no-people policy!
+                        # Use Gemini Flash to generate the image content directly
+                        response = client.models.generate_content(
+                            model='gemini-2.5-flash-image',
+                            contents=prompt,
+                            config=types.GenerateContentConfig(
+                                response_modalities=["IMAGE"]
                             )
                         )
                         
-                        # Extract and display the generated image bytes
-                        for generated_image in result.generated_images:
-                            image_bytes = generated_image.image.image_bytes
-                            img = Image.open(BytesIO(image_bytes))
-                            st.image(img, caption=f"Visualizing {product_name} as a {medium}")
+                        # Extract the image bytes from the response parts
+                        image_found = False
+                        for part in response.candidates[0].content.parts:
+                            if part.inline_data:
+                                image_bytes = part.inline_data.data
+                                img = Image.open(BytesIO(image_bytes))
+                                st.image(img, caption=f"Visualizing {product_name} as a {medium}")
+                                image_found = True
+                                break
+                        
+                        if not image_found:
+                            st.warning("The model returned text instead of an image. Try tweaking the prompt slightly.")
+                            if response.text:
+                                st.write(response.text)
                         
                     except Exception as e:
                         st.error(f"Error generating image: {e}")
